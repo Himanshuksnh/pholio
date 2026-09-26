@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ArrowUpRight, Menu, X } from 'lucide-react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 
+import { Logo } from '@/components/brand/Logo'
 import { ButtonLink } from '@/components/ui/Button'
 import { Container } from '@/components/ui/Container'
 import { contact, navigation, site } from '@/config/site'
@@ -28,15 +29,11 @@ function Wordmark({ onClick }: { onClick?: () => void }) {
     <Link
       to="/"
       onClick={onClick}
-      className="group inline-flex items-baseline gap-2 rounded-sm"
+      className="group inline-flex items-center rounded-sm"
       aria-label={`${site.name} — home`}
     >
-      <span className="text-[1.0625rem] font-semibold tracking-[-0.03em] text-bone-50 transition-colors duration-300 group-hover:text-white">
-        {site.name}
-      </span>
-      <span
-        aria-hidden="true"
-        className="size-1.5 translate-y-[-1px] rounded-full bg-electric-500 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-125"
+      <Logo
+        className="transition-opacity duration-300 group-hover:opacity-80"
       />
     </Link>
   )

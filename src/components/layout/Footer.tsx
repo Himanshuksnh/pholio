@@ -1,6 +1,7 @@
 import { ArrowUp, Mail } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
+import { Logo } from '@/components/brand/Logo'
 import { Container } from '@/components/ui/Container'
 import { activeSocials, contact, navigation, site } from '@/config/site'
 import { services } from '@/data/services'
@@ -16,9 +17,8 @@ export function Footer() {
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-8">
           {/* Brand */}
           <div className="lg:col-span-4">
-            <Link to="/" className="inline-flex items-baseline gap-2">
-              <span className="text-lg font-semibold tracking-[-0.03em] text-bone-50">{site.name}</span>
-              <span aria-hidden="true" className="size-1.5 rounded-full bg-electric-500" />
+            <Link to="/" className="inline-flex items-center">
+              <Logo size="lg" />
             </Link>
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-bone-500">
               {site.description}

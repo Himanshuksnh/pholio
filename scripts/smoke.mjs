@@ -246,6 +246,25 @@ async function main() {
           `og:url="${ogUrl}" og:image="${ogImage}"`,
         )
 
+        /* The brand mark is an inline SVG, which can silently collapse to zero
+           height and leave a header with no logo on some viewports. */
+        if (route === '/') {
+          const mark = page.locator('header a[aria-label*="home"] svg').first()
+          const markBox = await mark.boundingBox()
+          check(
+            `${viewport.name} brand mark is rendered at a usable size`,
+            Boolean(markBox && markBox.width >= 24 && markBox.height >= 24),
+            markBox ? `${Math.round(markBox.width)}x${Math.round(markBox.height)}` : 'not visible',
+          )
+
+          const wordmark = page.locator('header a[aria-label*="home"]').first()
+          check(
+            `${viewport.name} wordmark text is visible`,
+            (await wordmark.innerText()).includes('Pholio'),
+            JSON.stringify(await wordmark.innerText()),
+          )
+        }
+
         const description = await page.locator('meta[name="description"]').getAttribute('content')
         check(
           `${viewport.name} ${route} has meta description`,
