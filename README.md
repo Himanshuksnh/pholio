@@ -9,7 +9,7 @@ gracefully when no form endpoint is configured.
 - **Animation:** Framer Motion
 - **Routing:** React Router 7
 - **Icons:** Lucide
-- **Testing:** Playwright-driven smoke suite (`npm run smoke`)
+- **Testing:** Playwright-driven smoke suites (`npm run smoke`, `npm run smoke:select`)
 
 ## Quick start
 
@@ -26,6 +26,7 @@ npm run dev        # http://localhost:5173
 | `npm run typecheck` | `tsc -b --noEmit`                                         |
 | `npm run lint`      | ESLint over the whole repo                                |
 | `npm run smoke`     | Build, serve, and assert the site end-to-end (see below)  |
+| `npm run smoke:select` | Rebuild, then assert the custom dropdowns (see below)  |
 
 ## Configuration
 
@@ -81,10 +82,19 @@ technology lists, and feature bullets live on `/projects/<slug>`.
 ## Testing
 
 `npm run smoke` builds the site, serves `dist/` from a local static server, and
-runs 379 assertions across mobile, tablet, and desktop viewports: metadata,
+runs 445 assertions across mobile, tablet, and desktop viewports: metadata,
 internal link integrity, no horizontal overflow, mobile menu behaviour, reduced
-motion, project counts and filtering, project detail pages, and sitemap
-integrity. It fails the run on any console error, page error, or failed request.
+motion, project counts and filtering, project detail pages, the contact form's
+validation and `mailto:` handoff, and sitemap integrity. It fails the run on any
+console error, page error, or failed request.
+
+`npm run smoke:select` rebuilds and then asserts the contact form's custom
+dropdowns on mobile and desktop: that no native `<select>` survives, the combobox
+and listbox ARIA wiring is valid, arrow keys, type-ahead, Enter, Escape and
+outside-click all behave, focus returns to the trigger, the popup stays inside
+the viewport, the focus ring matches the other controls, and the chosen values
+reach the submitted `mailto:` body. Note that `npm run smoke` itself does not
+rebuild, so always run `npm run build` first or you will test a stale `dist/`.
 
 Playwright is a dev dependency, so no separate install step is needed.
 

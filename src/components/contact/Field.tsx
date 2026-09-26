@@ -1,8 +1,7 @@
-import type { ReactNode, SelectHTMLAttributes } from 'react'
+import type { ReactNode } from 'react'
 import { useId } from 'react'
 
-import { ChevronDown } from 'lucide-react'
-
+import { SelectMenu } from '@/components/ui/SelectMenu'
 import { cn } from '@/lib/cn'
 
 /* -------------------------------------------------------------------------- */
@@ -24,6 +23,7 @@ interface FieldShellProps {
   className?: string
   children: (aria: {
     id: string
+    labelId: string
     describedBy: string | undefined
     invalid: boolean
   }) => ReactNode
@@ -32,11 +32,12 @@ interface FieldShellProps {
 function FieldShell({ id, label, error, hint, required, className, children }: FieldShellProps) {
   const errorId = `${id}-error`
   const hintId = `${id}-hint`
+  const labelId = `${id}-label`
   const describedBy = [error ? errorId : null, hint ? hintId : null].filter(Boolean).join(' ')
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <label htmlFor={id} className="text-sm font-medium text-bone-200">
+      <label id={labelId} htmlFor={id} className="text-sm font-medium text-bone-200">
         {label}
         {required ? (
           <>
@@ -50,7 +51,7 @@ function FieldShell({ id, label, error, hint, required, className, children }: F
         )}
       </label>
 
-      {children({ id, describedBy: describedBy || undefined, invalid: Boolean(error) })}
+      {children({ id, labelId, describedBy: describedBy || undefined, invalid: Boolean(error) })}
 
       {hint ? (
         <p id={hintId} className="text-xs leading-relaxed text-bone-600">
@@ -230,8 +231,7 @@ export interface SelectOption {
   readonly label: string
 }
 
-export interface SelectFieldProps
-  extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value' | 'id'> {
+export interface SelectFieldProps {
   label: string
   name: string
   /** Stable id, so an error summary elsewhere can link straight to the control. */
@@ -246,6 +246,15 @@ export interface SelectFieldProps
   className?: string
 }
 
+/**
+ * A labelled choice control.
+ *
+ * Uses the custom `SelectMenu` rather than a native `<select>`, because the
+ * native control renders the operating system's dropdown and cannot be styled to
+ * match the rest of the form. The menu keeps the native semantics: it is
+ * labelled, exposes `aria-invalid` and the hint/error text, and is fully
+ * keyboard operable.
+ */
 export function SelectField({
   label,
   name,
@@ -258,7 +267,6 @@ export function SelectField({
   hint,
   required,
   className,
-  ...rest
 }: SelectFieldProps) {
   const generatedId = useId()
   const fieldId = id ?? generatedId
@@ -272,31 +280,19 @@ export function SelectField({
       required={required}
       className={className}
     >
-      {({ id, describedBy, invalid }) => (
-        <div className="relative">
-          <select
-            {...rest}
-            id={id}
-            name={name}
-            value={value}
-            required={required}
-            aria-invalid={invalid || undefined}
-            aria-describedby={describedBy}
-            onChange={(event) => onChange(event.target.value)}
-            onBlur={onBlur}
-            className={cn(controlBase, 'h-12 cursor-pointer pr-11')}
-          >
-            {options.map((option) => (
-              <option key={option.value} value={option.value} className="bg-ink-800 text-bone-100">
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown
-            aria-hidden="true"
-            className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-bone-500"
-          />
-        </div>
+      {({ id, labelId, describedBy, invalid }) => (
+        <SelectMenu
+          id={id}
+          name={name}
+          labelId={labelId}
+          value={value}
+          options={options}
+          onChange={onChange}
+          onClose={onBlur}
+          invalid={invalid}
+          describedBy={describedBy}
+          placeholder={options[0]?.label}
+        />
       )}
     </FieldShell>
   )

@@ -108,6 +108,19 @@ const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
 ]
 
+/**
+ * Drives a `SelectMenu` the way a person would: open the popup, click the
+ * option carrying the given value. Playwright's `selectOption` only works on a
+ * real `<select>`, so it cannot be used against these custom listboxes.
+ */
+async function chooseOption(page, fieldId, value) {
+  await page.locator(`#${fieldId}`).click()
+  const listbox = page.locator(`[id="${fieldId}-listbox"]`)
+  await listbox.waitFor()
+  await listbox.locator(`[role="option"][data-value="${value}"]`).click()
+  await listbox.waitFor({ state: 'detached' })
+}
+
 async function main() {
   const browser = await chromium.launch()
   const consoleErrors = []
@@ -603,7 +616,7 @@ async function main() {
       /* Fill it in properly. */
       await page.fill('#contact-name', 'Ada Lovelace')
       await page.fill('#contact-email', 'ada@example.com')
-      await page.selectOption('#contact-projectType', 'website')
+      await chooseOption(page, 'contact-projectType', 'website')
       await page.fill('#contact-details', 'We need a marketing site for a new product line.')
       await page.getByRole('button', { name: /send message/i }).click()
 
