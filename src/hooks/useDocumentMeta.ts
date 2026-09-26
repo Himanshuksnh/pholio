@@ -99,6 +99,9 @@ export function useDocumentMeta({
       description: site.description,
       url: site.url,
       email: contact.email,
+      // Only advertise a phone number when one is actually configured, so the
+      // structured data never claims a contact channel the site doesn't show.
+      ...(contact.phone ? { telephone: contact.phone } : {}),
       ...jsonLd,
     }
 

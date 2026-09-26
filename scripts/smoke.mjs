@@ -781,6 +781,40 @@ async function main() {
       check('contact page exposes a submit button', false, 'no submit button found')
     }
 
+    /* Contact details must be reachable from the page, not just the config. */
+    await auditPage.goto(`${BASE}/contact`, { waitUntil: 'networkidle' })
+    const contactEmail = (await auditPage.locator('a[href^="mailto:"]').first().getAttribute('href')) ?? ''
+    check(
+      'contact page exposes a mailto link',
+      /^mailto:[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim()),
+      contactEmail,
+    )
+
+    const telAnchor = auditPage.locator('a[href^="tel:"]').first()
+    const telHref = await telAnchor.getAttribute('href')
+    // The anchor also contains the "Phone" label, so pull the number itself out.
+    const telText = ((await telAnchor.innerText()).match(/\+?\d[\d\s()-]{7,}/) ?? [''])[0].trim()
+    check(
+      'contact page exposes a tel: link',
+      /^tel:\+?\d{6,}$/.test((telHref ?? '').trim()),
+      telHref ?? '',
+    )
+    check(
+      'tel: link strips formatting from the displayed number',
+      (telHref ?? '').replace('tel:', '') === telText.replace(/[^\d+]/g, ''),
+      `"${telHref}" vs "${telText}"`,
+    )
+
+    const contactJsonLd = await auditPage.evaluate(() => {
+      const node = document.getElementById('pholio:jsonld')
+      return node?.textContent ?? ''
+    })
+    check(
+      'structured data advertises the contact email',
+      contactJsonLd.includes(contactEmail.replace('mailto:', '')),
+    )
+    check('structured data advertises the phone number', contactJsonLd.includes(telText))
+
     await auditContext.close()
   } finally {
     await browser.close()

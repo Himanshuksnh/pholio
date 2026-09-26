@@ -92,8 +92,8 @@ export interface ContactDetails {
 }
 
 export const contact: ContactDetails = {
-  email: 'hello@pholio.studio',
-  phone: '',
+  email: 'Dewjoshi2502@gmail.com',
+  phone: '+91 94609 83122',
   location: '',
 }
 
