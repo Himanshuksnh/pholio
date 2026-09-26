@@ -238,23 +238,29 @@ log(
 )
 
 // And the real submit path must carry them through, not just the visible label.
-// With no endpoint configured the app reports that honestly and offers a
-// mailto: handoff, so assert on that anchor's href.
+// With no endpoint configured the app hands the enquiry to WhatsApp, so assert
+// on the wa.me chat it opens.
+await page.evaluate(() => {
+  window.__opened = []
+  window.open = (url) => {
+    window.__opened.push(String(url))
+    return null
+  }
+})
 await page.locator('#contact-details').fill('I need a new marketing website for my business.')
 await page.locator('form button[type="submit"]').click()
-const mailto = await page
-  .locator('a[href^="mailto:"][href*="subject="]')
-  .first()
-  .getAttribute('href', { timeout: 10_000 })
-  .catch(() => null)
+await page.waitForSelector('text=/ready in WhatsApp/i', { timeout: 10_000 })
+const opened = await page.evaluate(() => window.__opened ?? [])
+const handoff = opened[0] ?? ''
 log(
-  'submit carries the chosen values into the mailto handoff',
-  Boolean(mailto) &&
-    mailto.includes('Website%20Development') &&
-    mailto.includes('Under%20%241%2C000') &&
-    mailto.includes('marketing%20website'),
-  mailto ? decodeURIComponent(mailto).slice(0, 160) : 'no mailto link rendered',
+  'submit carries the chosen values into the WhatsApp handoff',
+  /^https:\/\/wa\.me\/919460983122\?text=/.test(handoff) &&
+    decodeURIComponent(handoff).includes('Website Development') &&
+    decodeURIComponent(handoff).includes('Under $1,000') &&
+    decodeURIComponent(handoff).includes('marketing website'),
+  handoff ? decodeURIComponent(handoff).slice(0, 150) : 'no WhatsApp chat opened',
 )
+log('the message is still on screen after submitting', (await page.inputValue('#contact-details')).includes('marketing website'))
 await page.close()
 
 console.log(out.join('\n'))

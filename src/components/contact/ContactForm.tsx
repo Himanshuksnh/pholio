@@ -1,13 +1,13 @@
 import { useCallback, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 
-import { CircleAlert, CircleCheck, LoaderCircle, Send, TriangleAlert } from 'lucide-react'
+import { CircleAlert, CircleCheck, LoaderCircle, MessageCircle, Send, TriangleAlert } from 'lucide-react'
 
 import { HoneypotField, SelectField, TextAreaField, TextField } from '@/components/contact/Field'
 import { Button } from '@/components/ui/Button'
 import { contact } from '@/config/site'
 import type { SubmitStatus } from '@/lib/contact'
-import { buildMailtoHref, submitContactForm } from '@/lib/contact'
+import { buildWhatsappHref, isWhatsappConfigured, submitContactForm } from '@/lib/contact'
 import type { ContactFormErrors, ContactFormValues } from '@/lib/validation'
 import {
   BUDGET_OPTIONS,
@@ -154,34 +154,6 @@ export function ContactForm() {
 
   const errorList = FIELD_ORDER.filter((field) => errors[field])
 
-  if (state === 'sent') {
-    return (
-      <div className="rounded-3xl border border-line bg-ink-900/40 p-7 sm:p-9">
-        <Notice
-          tone="success"
-          title="Message sent — thank you."
-          action={
-            <Button variant="secondary" size="sm" onClick={resetForm}>
-              Send another message
-            </Button>
-          }
-        >
-          <p>
-            Your enquiry was accepted by our server. If it does not prompt a reply from a human
-            within a couple of days, email us at{' '}
-            <a
-              href={`mailto:${contact.email}`}
-              className="text-bone-100 underline decoration-bone-600 underline-offset-4 transition-colors hover:decoration-electric-400"
-            >
-              {contact.email}
-            </a>
-            .
-          </p>
-        </Notice>
-      </div>
-    )
-  }
-
   return (
     <form
       noValidate
@@ -189,10 +161,43 @@ export function ContactForm() {
       aria-busy={busy}
       className="rounded-3xl border border-line bg-ink-900/40 p-6 sm:p-8"
     >
-      {state === 'unconfigured' ? (
+      {state === 'whatsapp' ? (
         <div className="mb-7">
-          <Notice tone="info" title="This form is not connected to a backend yet">
+          <Notice
+            tone="success"
+            title="Your message is ready in WhatsApp"
+            action={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={resetForm}
+                trailing={<MessageCircle className="size-4" />}
+              >
+                Write another message
+              </Button>
+            }
+          >
             <p>{stateMessage}</p>
+            <p className="mt-2">
+              WhatsApp did not open?{' '}
+              <a
+                href={buildWhatsappHref(values)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-bone-100 underline decoration-bone-600 underline-offset-4 transition-colors hover:decoration-electric-400"
+              >
+                Open the chat on wa.me
+              </a>{' '}
+              or write to{' '}
+              <a
+                href={`mailto:${contact.email}`}
+                className="font-medium text-bone-100 underline decoration-bone-600 underline-offset-4 transition-colors hover:decoration-electric-400"
+              >
+                {contact.email}
+              </a>
+              .
+            </p>
+            <p className="mt-2">Everything you typed is still below, so nothing has been lost.</p>
           </Notice>
         </div>
       ) : null}
@@ -324,10 +329,12 @@ export function ContactForm() {
         />
       </div>
 
-      <div className="mt-8 flex flex-col gap-4 border-t border-line pt-7 sm:flex-row sm:items-center sm:justify-between">
-        <p className="max-w-xs text-xs leading-relaxed text-bone-600">
-          We only use these details to reply to your enquiry.
-        </p>
+        <div className="mt-8 flex flex-col gap-4 border-t border-line pt-7 sm:flex-row sm:items-center sm:justify-between">
+          <p className="max-w-xs text-xs leading-relaxed text-bone-600">
+            {isWhatsappConfigured()
+              ? 'Opens WhatsApp with these details. You press send there.'
+              : 'We only use these details to reply to your enquiry.'}
+          </p>
         <Button
           type="submit"
           variant="accent"
@@ -344,21 +351,6 @@ export function ContactForm() {
           {busy ? 'Sending…' : 'Send message'}
         </Button>
       </div>
-
-      {state === 'unconfigured' ? (
-        <div className="mt-6 rounded-2xl border border-line bg-ink-850/60 p-5">
-          <p className="text-sm font-medium text-bone-100">Prefer your own email app?</p>
-          <p className="mt-1.5 text-sm leading-relaxed text-bone-500">
-            Everything you have typed above will be filled in for you.
-          </p>
-          <a
-            href={buildMailtoHref(values)}
-            className="mt-4 inline-flex h-10 items-center rounded-full border border-line-strong px-5 text-sm text-bone-100 transition-colors duration-300 hover:border-electric-500/45 hover:bg-white/[0.06]"
-          >
-            Open in email app
-          </a>
-        </div>
-      ) : null}
     </form>
   )
 }

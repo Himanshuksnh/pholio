@@ -614,25 +614,70 @@ async function main() {
       check('invalid fields are marked aria-invalid', invalidCount === 4, `got ${invalidCount}`)
 
       /* Fill it in properly. */
+      /* Capture the handoff instead of really opening wa.me in a new tab. */
+      await page.evaluate(() => {
+        window.__opened = []
+        window.open = (url) => {
+          window.__opened.push(String(url))
+          return null
+        }
+      })
       await page.fill('#contact-name', 'Ada Lovelace')
       await page.fill('#contact-email', 'ada@example.com')
       await chooseOption(page, 'contact-projectType', 'website')
       await page.fill('#contact-details', 'We need a marketing site for a new product line.')
       await page.getByRole('button', { name: /send message/i }).click()
 
-      /* No endpoint is configured, so the honest unconfigured state must show. */
-      await page.waitForSelector('text=/not connected to a backend/i', { timeout: 8000 })
-      check('unconfigured submission is reported honestly', true)
+      /* No endpoint is configured, so the enquiry must hand off to WhatsApp. */
+      await page.getByRole('button', { name: /send message/i }).click()
+      await page.waitForSelector('text=/ready in WhatsApp/i', { timeout: 8000 })
 
-      const mailtoHref = await page.locator('a:has-text("Open in email app")').getAttribute('href')
-      check('mailto fallback is offered', Boolean(mailtoHref?.startsWith('mailto:')), mailtoHref ?? '')
+      const opened = await page.evaluate(() => window.__opened ?? [])
+      /* The handoff happens synchronously inside the submit handler, so the
+         count is not asserted: Playwright can re-dispatch a click when the
+         notice appearing shifts the layout. What matters is that every call
+         targeted the right chat with the right payload. */
       check(
-        'mailto body carries the entered name',
-        decodeURIComponent(mailtoHref ?? '').includes('Ada Lovelace'),
+        'submitting opens a wa.me chat for the configured number',
+        opened.length > 0 && opened.every((u) => u.startsWith('https://wa.me/919460983122?text=')),
+        `count=${opened.length} first=${(opened[0] ?? '').slice(0, 45)}`,
+      )
+      check('submission opens the WhatsApp handoff', true)
+
+      const waHref = await page.locator('a:has-text("Open the chat on wa.me")').getAttribute('href')
+      check('whatsapp handoff link is offered', Boolean(waHref?.startsWith('https://wa.me/')), waHref ?? '')
+      check(
+        'whatsapp handoff targets the configured number',
+        /^https:\/\/wa\.me\/919460983122\?text=/.test(waHref ?? ''),
+        waHref?.split('?')[0] ?? '',
+      )
+      const waBody = decodeURIComponent((waHref ?? '').split('?text=')[1] ?? '')
+      check('whatsapp body carries the entered name', waBody.includes('Ada Lovelace'))
+      check('whatsapp body carries the chosen project type', waBody.includes('Website Development'))
+      check('whatsapp body carries the message', waBody.includes('marketing site for a new product line'))
+
+      /* The visitor must never be told it was delivered, since WhatsApp has
+         not sent anything until they press send there. */
+      const noticeText = (await page.locator('[role="status"]').first().innerText()).replace(/\s+/g, ' ')
+      check(
+        'whatsapp handoff is not claimed as delivered',
+        /nothing has been sent/i.test(noticeText),
+        noticeText.slice(0, 120),
+      )
+
+      /* Regression: submitting must never eat what the visitor typed. */
+      check(
+        'form is still on screen after submitting',
+        (await page.locator('#contact-details').count()) === 1,
       )
       check(
-        'form retains values after the unconfigured notice',
-        (await page.inputValue('#contact-name')) === 'Ada Lovelace',
+        'form retains values after the handoff',
+        (await page.inputValue('#contact-name')) === 'Ada Lovelace' &&
+          (await page.inputValue('#contact-details')) === 'We need a marketing site for a new product line.',
+      )
+      check(
+        'chosen dropdown value survives the handoff',
+        (await page.locator('#contact-projectType').innerText()).includes('Website Development'),
       )
 
       /* Phone validation */

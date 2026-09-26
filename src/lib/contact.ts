@@ -40,12 +40,12 @@ export interface ContactPayload {
   submittedAt: string
 }
 
-export type SubmitStatus = 'sent' | 'error' | 'unconfigured'
+export type SubmitStatus = 'sent' | 'error' | 'whatsapp'
 
 export type SubmitResult =
   | { status: 'sent' }
   | { status: 'error'; message: string }
-  | { status: 'unconfigured'; message: string }
+  | { status: 'whatsapp'; message: string }
 
 const REQUEST_TIMEOUT_MS = 15_000
 
@@ -95,21 +95,72 @@ export function buildMailtoBody(values: ContactFormValues): string {
   return lines.join('\n')
 }
 
-export function buildMailtoHref(values: ContactFormValues): string {
-  const subject = `Project enquiry — ${optionLabel(PROJECT_TYPE_OPTIONS, values.projectType)}`
-  return `mailto:${contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
-    buildMailtoBody(values),
-  )}`
+/* -------------------------------------------------------------------------- */
+/* WhatsApp handoff                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The contact number in the form WhatsApp expects: digits only, country code
+ * included and no leading zero, e.g. `+91 94609 83122` -> `919460983122`.
+ * Returns null when no usable number is configured.
+ */
+export function getWhatsappNumber(): string | null {
+  const digits = contact.phone.replace(/\D/g, '')
+  // Bare national numbers are ambiguous, so require a country code.
+  if (digits.length < 8) return null
+  return digits
+}
+
+/** True when a WhatsApp handoff can be offered on this deployment. */
+export function isWhatsappConfigured(): boolean {
+  return getWhatsappNumber() !== null
+}
+
+/**
+ * Opens a WhatsApp chat with the enquiry pre-filled as a draft.
+ *
+ * WhatsApp still requires the visitor to press send, so the UI must never claim
+ * the message was delivered — see the `whatsapp` result below.
+ */
+export function buildWhatsappHref(values: ContactFormValues): string {
+  const number = getWhatsappNumber()
+  if (!number) return `mailto:${contact.email}`
+
+  const payload = buildPayload(values)
+  const lines = [
+    `New enquiry from the website`,
+    '',
+    `Name: ${payload.name}`,
+    `Email: ${payload.email}`,
+    payload.phone ? `Phone: ${payload.phone}` : null,
+    `Project type: ${payload.projectTypeLabel}`,
+    payload.budget ? `Estimated budget: ${payload.budgetLabel}` : null,
+    '',
+    'Project details:',
+    payload.details,
+  ].filter((line): line is string => line !== null)
+
+  return `https://wa.me/${number}?text=${encodeURIComponent(lines.join('\n'))}`
 }
 
 export async function submitContactForm(values: ContactFormValues): Promise<SubmitResult> {
   const endpoint = getContactEndpoint()
 
   if (!endpoint) {
+    // No backend on this deployment, so hand the enquiry to WhatsApp instead of
+    // pretending it was sent. The visitor still has to press send over there.
+    if (!isWhatsappConfigured()) {
+      return {
+        status: 'error',
+        message:
+          'This form has no delivery method configured on this deployment, so nothing has been sent. Please email us directly.',
+      }
+    }
+
+    window.open(buildWhatsappHref(values), '_blank', 'noopener,noreferrer')
     return {
-      status: 'unconfigured',
-      message:
-        'Direct form submission is not configured on this deployment, so nothing has been sent. Use the button below to open your email app with these details filled in, or write to us directly.',
+      status: 'whatsapp',
+      message: `Your enquiry is ready in WhatsApp. Press send there to deliver it to us — nothing has been sent yet from this page.`,
     }
   }
 

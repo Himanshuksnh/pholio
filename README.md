@@ -37,7 +37,7 @@ Copy `.env.example` to `.env.local` and adjust as needed:
 | Variable                | Purpose                                                        |
 | ----------------------- | -------------------------------------------------------------- |
 | `VITE_SITE_URL`         | Public origin. Drives canonical URLs, Open Graph, JSON-LD, and the generated `sitemap.xml` / `robots.txt`. **Set this before deploying** or every canonical will point at the `https://example.com` fallback. |
-| `VITE_CONTACT_ENDPOINT` | HTTPS endpoint that receives contact submissions. Leave empty to fall back to a `mailto:` link. |
+| `VITE_CONTACT_ENDPOINT` | HTTPS endpoint that receives contact submissions. Leave empty to hand the enquiry to WhatsApp. |
 
 `src/config/site.ts` also holds the brand name, contact email, and social
 profiles. **Social entries with an empty `href` are automatically hidden**, so
@@ -49,7 +49,14 @@ footer, and structured data.
 `src/lib/contact.ts` posts JSON to `VITE_CONTACT_ENDPOINT`. The endpoint must
 accept a `POST` and return a 2xx response; no specific provider is assumed, so
 Formspree, a serverless function, or your own API all work. If the variable is
-unset, the form surfaces a `mailto:` fallback instead of pretending to submit.
+unset, the form hands the enquiry to WhatsApp instead of pretending to submit.
+
+With no endpoint, submitting opens `https://wa.me/<number>` with the enquiry
+pre-filled as a draft, using `contact.phone` from `src/config/site.ts` (the
+formatting is stripped, and a country code is required). WhatsApp still needs
+the visitor to press send, so the confirmation says so and never claims the
+message was delivered. The form stays on screen with everything still filled in,
+so nothing is lost and a second message can be written straight away.
 
 ## Project data
 
@@ -82,10 +89,10 @@ technology lists, and feature bullets live on `/projects/<slug>`.
 ## Testing
 
 `npm run smoke` builds the site, serves `dist/` from a local static server, and
-runs 445 assertions across mobile, tablet, and desktop viewports: metadata,
+runs 466 assertions across mobile, tablet, and desktop viewports: metadata,
 internal link integrity, no horizontal overflow, mobile menu behaviour, reduced
 motion, project counts and filtering, project detail pages, the contact form's
-validation and `mailto:` handoff, and sitemap integrity. It fails the run on any
+validation and the WhatsApp handoff, and sitemap integrity. It fails the run on any
 console error, page error, or failed request.
 
 `npm run smoke:select` rebuilds and then asserts the contact form's custom
@@ -93,7 +100,7 @@ dropdowns on mobile and desktop: that no native `<select>` survives, the combobo
 and listbox ARIA wiring is valid, arrow keys, type-ahead, Enter, Escape and
 outside-click all behave, focus returns to the trigger, the popup stays inside
 the viewport, the focus ring matches the other controls, and the chosen values
-reach the submitted `mailto:` body. Note that `npm run smoke` itself does not
+reach the WhatsApp message body. Note that `npm run smoke` itself does not
 rebuild, so always run `npm run build` first or you will test a stale `dist/`.
 
 Playwright is a dev dependency, so no separate install step is needed.
