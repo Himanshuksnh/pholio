@@ -9,9 +9,11 @@ import { seoFiles } from './vite-plugin-seo-files.ts'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   // `loadEnv` is used instead of `import.meta.env` so the sitemap/robots origin
-  // matches what the app renders from `src/config/site.ts`.
+  // matches what the app renders from `src/config/site.ts`. Note `??` is not
+  // enough: a blank `VITE_SITE_URL` would emit `https://` origins.
   const env = loadEnv(mode, process.cwd(), '')
-  const siteUrl = env.VITE_SITE_URL ?? 'https://example.com'
+  const configured = (env.VITE_SITE_URL ?? '').trim()
+  const siteUrl = configured || 'https://example.com'
 
   return {
     plugins: [react(), tailwindcss(), seoFiles(siteUrl)],

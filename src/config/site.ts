@@ -38,13 +38,45 @@ export interface SiteDetails {
   readonly ogImage: string
 }
 
+/**
+ * Resolves the public origin used for canonical URLs, Open Graph and JSON-LD.
+ *
+ * `VITE_SITE_URL` wins when it holds a usable absolute URL. Otherwise the
+ * current runtime origin is used, which keeps metadata correct on preview
+ * deployments. The placeholder is only a last resort.
+ *
+ * Note: `??` is deliberately not used here — it does not catch an empty string,
+ * and a blank `VITE_SITE_URL` (easy to set by accident) would otherwise produce
+ * an empty base that makes `new URL(path, site.url)` throw and blank the page.
+ */
+function resolveSiteUrl(): string {
+  const placeholder = 'https://example.com'
+
+  const configured = (import.meta.env.VITE_SITE_URL ?? '').trim()
+  if (configured) {
+    try {
+      return new URL(configured).origin
+    } catch {
+      console.warn(
+        `[site] Ignoring invalid VITE_SITE_URL "${configured}" — expected an absolute URL such as https://yourdomain.com`,
+      )
+    }
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin
+  }
+
+  return placeholder
+}
+
 export const site: SiteDetails = {
   name: 'Pholio',
   legalName: 'Pholio',
   tagline: 'Software Development Studio',
   description:
     'A software development studio designing and engineering web, mobile and custom software — from first sketch to production.',
-  url: (import.meta.env.VITE_SITE_URL ?? 'https://example.com').replace(/\/$/, ''),
+  url: resolveSiteUrl(),
   locale: 'en',
   themeColor: '#05070b',
   ogImage: '/og-image.png',

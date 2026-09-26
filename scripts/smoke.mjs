@@ -152,6 +152,17 @@ async function main() {
           `got "${canonical}"`,
         )
 
+        /* A blank/invalid VITE_SITE_URL once made `new URL(path, site.url)`
+           throw, which blanked every page. Metadata must always resolve to a
+           real absolute URL, never a root-relative fallback. */
+        const ogUrl = await page.locator('meta[property="og:url"]').getAttribute('content')
+        const ogImage = await page.locator('meta[property="og:image"]').getAttribute('content')
+        check(
+          `${viewport.name} ${route} og:url and og:image are absolute`,
+          Boolean(ogUrl?.startsWith('http')) && Boolean(ogImage?.startsWith('http')),
+          `og:url="${ogUrl}" og:image="${ogImage}"`,
+        )
+
         const description = await page.locator('meta[name="description"]').getAttribute('content')
         check(
           `${viewport.name} ${route} has meta description`,

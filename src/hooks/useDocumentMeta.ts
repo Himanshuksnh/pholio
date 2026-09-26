@@ -39,7 +39,14 @@ function upsertCanonical(href: string) {
 }
 
 function toAbsoluteUrl(path: string): string {
-  return new URL(path, site.url).toString()
+  try {
+    return new URL(path, site.url).toString()
+  } catch {
+    // Metadata must never be able to take down the page. If the configured
+    // origin is somehow unusable, fall back to a root-relative URL rather than
+    // throwing during render and unmounting the whole app.
+    return path
+  }
 }
 
 /**
