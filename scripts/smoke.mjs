@@ -6,10 +6,14 @@
  * page errors, failed requests and a set of DOM assertions (headings, filters,
  * form validation, card counts, no dead links).
  *
+ * IMPORTANT: the local server implements SPA fallback itself, so it cannot
+ * prove a real host will serve deep links. The hosting configs are therefore
+ * asserted separately against the same routing rules.
+ *
  * Usage:  npm run build && node scripts/smoke.mjs
  */
 
-import { createReadStream } from 'node:fs'
+import { createReadStream, readFileSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join, normalize, resolve } from 'node:path'
@@ -79,7 +83,6 @@ process.on('SIGINT', () => {
 const failures = []
 const notes = []
 const warnings = []
-
 function check(label, condition, detail = '') {
   if (condition) {
     notes.push(`  PASS  ${label}`)
@@ -110,6 +113,86 @@ async function main() {
   const consoleErrors = []
   const pageErrors = []
   const failedRequests = []
+
+  /* ---------------------------------------------------------------------
+   * Hosting config: SPA deep links.
+   *
+   * The local test server falls back to index.html for unknown paths, so it
+   * cannot catch a host that would 404 on /projects/<slug>. Assert the deploy
+   * configs actually contain a catch-all rewrite instead.
+   * ------------------------------------------------------------------- */
+  const hostingConfigs = [
+    { file: 'vercel.json', root: 'dist' },
+    { file: 'firebase.json', root: 'dist' },
+  ]
+
+  for (const { file, root } of hostingConfigs) {
+    let config = null
+    try {
+      config = JSON.parse(readFileSync(resolve(DIST, '..', file), 'utf8'))
+      check(`${file} is valid JSON`, true)
+    } catch (error) {
+      check(`${file} is valid JSON`, false, String(error))
+      continue
+    }
+
+    const vercelRewrites = file === 'vercel.json' ? (config.rewrites ?? []) : null
+    const firebaseRewrites =
+      file === 'firebase.json' ? (config.hosting?.rewrites ?? []) : null
+
+    if (vercelRewrites || firebaseRewrites) {
+      const rules = vercelRewrites ?? firebaseRewrites
+      const spaRule = rules.find((rule) => rule.destination === '/index.html')
+      check(
+        `${file} rewrites unknown paths to /index.html`,
+        Boolean(spaRule),
+        JSON.stringify(rules),
+      )
+
+      /* Only Vercel uses regex sources; Firebase uses globs, and it serves
+         matching static files before applying a rewrite. */
+      if (spaRule && vercelRewrites) {
+        // Vercel matches the path with the leading slash removed.
+        const pattern = new RegExp(`^${spaRule.source.replace(/^\//, '')}$`)
+        const routed = (path) => pattern.test(path.replace(/^\//, ''))
+        const mustRoute = ['projects/cineverse', 'projects/hazirihub-website', 'contact']
+        const mustNotRoute = [
+          'assets/index-abc123.js',
+          'favicon.svg',
+          'og-image.png',
+          'sitemap.xml',
+          'robots.txt',
+        ]
+
+        check(
+          `${file} rewrite serves app routes`,
+          mustRoute.every(routed),
+          mustRoute.filter((p) => !routed(p)).join(', '),
+        )
+        check(
+          `${file} rewrite does not shadow real files`,
+          mustNotRoute.every((p) => !routed(p)),
+          mustNotRoute.filter(routed).join(', '),
+        )
+      }
+
+      if (spaRule && firebaseRewrites) {
+        // A bare glob must still let real files through first.
+        check(
+          `${file} uses a catch-all rewrite for app routes`,
+          spaRule.source === '**' || spaRule.source === '/*',
+          spaRule.source,
+        )
+      }
+    }
+
+    if (file === 'vercel.json') {
+      check(`${file} publishes the build output`, config.outputDirectory === root)
+    }
+    if (file === 'firebase.json') {
+      check(`${file} publishes the build output`, config.hosting?.public === root)
+    }
+  }
 
   try {
     for (const viewport of VIEWPORTS) {

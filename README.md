@@ -91,7 +91,13 @@ Playwright is a dev dependency, so no separate install step is needed.
 ## Deployment
 
 The build output is a fully static `dist/` directory, so any static host works.
-SPA rewrites are required so `/projects/<slug>` resolves to `index.html`.
+
+**SPA rewrites are required.** Every route is client-side, so a request for
+`/projects/<slug>` must be served `index.html` rather than 404. Both
+`vercel.json` and `firebase.json` already contain a catch-all rewrite that
+targets the app routes without shadowing real files, and `npm run smoke`
+asserts both configs still contain it — the local test server implements SPA
+fallback itself, so it cannot catch a host that would 404 on deep links.
 
 ### Vercel
 
@@ -106,14 +112,15 @@ npm run build
 firebase deploy --only hosting
 ```
 
-`firebase.json` configures the public directory, `cleanUrls`, cache headers for
-hashed assets, and baseline security headers.
+`firebase.json` configures the public directory, the SPA rewrite, and cache
+headers for hashed assets.
 
 ### Other hosts
 
 Upload `dist/` and configure a rewrite of all unmatched paths to `/index.html`
 (Nginx `try_files $uri /index.html`, Netlify `_redirects`, S3/CloudFront error
-document, and so on).
+document, and so on). Forgetting this is the most common cause of a site whose
+home page works but whose project links 404.
 
 ## Project structure
 
