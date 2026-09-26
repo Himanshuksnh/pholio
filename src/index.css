@@ -1,0 +1,239 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Design tokens
+   Single source of truth for the visual language. Change values here and the
+   entire site follows.
+   ========================================================================== */
+
+@theme {
+  /* --- Typography ------------------------------------------------------ */
+  /* Devanagari faces are listed as fallbacks so non-Latin copy (e.g. "हिसाब")
+     renders with a proper glyph set instead of falling back per-character. */
+  --font-sans:
+    'Inter', 'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', ui-sans-serif, system-ui,
+    -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:
+    'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  --font-serif: 'Instrument Serif', 'Iowan Old Style', 'Times New Roman', Times, serif;
+
+  /* --- Surfaces: near-black with a cool navy cast ----------------------- */
+  --color-ink-950: #05070b;
+  --color-ink-900: #090c13;
+  --color-ink-850: #0c1019;
+  --color-ink-800: #111623;
+  --color-ink-700: #1a2130;
+  --color-ink-600: #232c3d;
+
+  /* --- Text: off-white -------------------------------------------------- */
+  --color-bone-50: #f7f8fa;
+  --color-bone-100: #eef0f4;
+  --color-bone-200: #dde1e9;
+  --color-bone-300: #bfc5d2;
+  --color-bone-400: #98a0b1;
+  --color-bone-500: #798195;
+  --color-bone-600: #5c6478;
+
+  /* --- Accent: restrained electric blue --------------------------------- */
+  --color-electric-200: #c3d2ff;
+  --color-electric-300: #9db6ff;
+  --color-electric-400: #7a9bff;
+  --color-electric-500: #4a73ff;
+  --color-electric-600: #2f55e8;
+  --color-electric-700: #1f3fbf;
+
+  /* --- Lines ------------------------------------------------------------ */
+  --color-line: #191f2c;
+  --color-line-strong: #242d3e;
+
+  /* --- Status (used only for form feedback) ----------------------------- */
+  --color-positive: #46d39a;
+  --color-critical: #f87171;
+
+  /* --- Motion ----------------------------------------------------------- */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-drift: drift 28s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-2.5%, -1.5%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2.5%, 0) scale(1.09);
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--color-line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    background-color: var(--color-ink-950);
+    color: var(--color-bone-200);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+  }
+
+  /* Consistent, visible keyboard focus everywhere. */
+  :focus-visible {
+    outline: 2px solid var(--color-electric-400);
+    outline-offset: 3px;
+  }
+
+  /* Never remove focus rings without a visible replacement. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--color-electric-500) 32%, transparent);
+    color: var(--color-bone-50);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-ink-700);
+    border: 3px solid var(--color-ink-950);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-ink-600);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-700) transparent;
+  }
+
+  /* Headings default to tight, confident display type. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--color-bone-50);
+    font-weight: 500;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+
+/* Small uppercase label used for eyebrows, indices and metadata. */
+@utility label-xs {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Editorial accent word set in the serif italic face. */
+@utility font-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Gradient text used sparingly for a single key phrase. */
+@utility text-electric-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-electric-200) 0%,
+    var(--color-electric-400) 42%,
+    var(--color-electric-600) 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Hairline top edge that draws itself in when the card is hovered or focused. */
+@utility edge-highlight {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    transform: scaleX(0);
+    transform-origin: left;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--color-electric-400) 75%, transparent),
+      transparent
+    );
+    transition: transform 600ms var(--ease-out-expo);
+    pointer-events: none;
+  }
+
+  &:hover::after,
+  &:focus-within::after {
+    transform: scaleX(1);
+  }
+}
+
+/* Fine technical grid, faded out towards the edges. */
+@utility bg-grid-fade {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--color-bone-100) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--color-bone-100) 6%, transparent) 1px, transparent 1px);
+  background-size: 72px 72px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 10%, transparent 72%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 10%, transparent 72%);
+}
+
+/* ==========================================================================
+   Reduced motion — a single global override, respected by CSS animations.
+   Framer Motion animations are gated in JS via `useReducedMotion()`.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
