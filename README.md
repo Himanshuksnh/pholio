@@ -53,10 +53,30 @@ unset, the form hands the enquiry to WhatsApp instead of pretending to submit.
 
 With no endpoint, submitting opens `https://wa.me/<number>` with the enquiry
 pre-filled as a draft, using `contact.phone` from `src/config/site.ts` (the
-formatting is stripped, and a country code is required). WhatsApp still needs
-the visitor to press send, so the confirmation says so and never claims the
-message was delivered. The form stays on screen with everything still filled in,
-so nothing is lost and a second message can be written straight away.
+formatting is stripped, and a country code is required). The draft greets
+`contact.recipient` by name rather than the brand, and reads:
+
+```
+Hi Devansh,
+
+I'm interested in discussing a project with you.
+
+Name: Rahul Sharma
+Project Type: Mobile App Development
+Estimated Budget: $5,000 - $15,000
+
+Project Details:
+I need an Android and iOS app for my food delivery startup.
+
+Please let me know how we can proceed.
+
+Thank you!
+```
+
+WhatsApp still needs the visitor to press send, so the confirmation says so and
+never claims the message was delivered. The form stays on screen with everything
+still filled in, so nothing is lost and a second message can be written straight
+away.
 
 ## Project data
 

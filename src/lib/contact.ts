@@ -78,23 +78,6 @@ export function isSubmissionConfigured(): boolean {
   return getContactEndpoint() !== null
 }
 
-/** Plain-text version of the brief, used for the `mailto:` fallback. */
-export function buildMailtoBody(values: ContactFormValues): string {
-  const payload = buildPayload(values)
-  const lines = [
-    `Name: ${payload.name}`,
-    `Email: ${payload.email}`,
-    payload.phone ? `Phone: ${payload.phone}` : null,
-    `Project type: ${payload.projectTypeLabel}`,
-    payload.budget ? `Estimated budget: ${payload.budgetLabel}` : null,
-    '',
-    'Project details:',
-    payload.details,
-  ].filter((line): line is string => line !== null)
-
-  return lines.join('\n')
-}
-
 /* -------------------------------------------------------------------------- */
 /* WhatsApp handoff                                                             */
 /* -------------------------------------------------------------------------- */
@@ -116,6 +99,29 @@ export function isWhatsappConfigured(): boolean {
   return getWhatsappNumber() !== null
 }
 
+/** Plain-text version of the brief, used for the WhatsApp handoff. */
+export function buildWhatsappBody(values: ContactFormValues): string {
+  const payload = buildPayload(values)
+  const lines = [
+    `Hi ${contact.recipient},`,
+    '',
+    "I'm interested in discussing a project with you.",
+    '',
+    `Name: ${payload.name}`,
+    `Project Type: ${payload.projectTypeLabel}`,
+    `Estimated Budget: ${payload.budgetLabel}`,
+    '',
+    'Project Details:',
+    payload.details,
+    '',
+    'Please let me know how we can proceed.',
+    '',
+    'Thank you!',
+  ]
+
+  return lines.join('\n')
+}
+
 /**
  * Opens a WhatsApp chat with the enquiry pre-filled as a draft.
  *
@@ -126,21 +132,7 @@ export function buildWhatsappHref(values: ContactFormValues): string {
   const number = getWhatsappNumber()
   if (!number) return `mailto:${contact.email}`
 
-  const payload = buildPayload(values)
-  const lines = [
-    `New enquiry from the website`,
-    '',
-    `Name: ${payload.name}`,
-    `Email: ${payload.email}`,
-    payload.phone ? `Phone: ${payload.phone}` : null,
-    `Project type: ${payload.projectTypeLabel}`,
-    payload.budget ? `Estimated budget: ${payload.budgetLabel}` : null,
-    '',
-    'Project details:',
-    payload.details,
-  ].filter((line): line is string => line !== null)
-
-  return `https://wa.me/${number}?text=${encodeURIComponent(lines.join('\n'))}`
+  return `https://wa.me/${number}?text=${encodeURIComponent(buildWhatsappBody(values))}`
 }
 
 export async function submitContactForm(values: ContactFormValues): Promise<SubmitResult> {

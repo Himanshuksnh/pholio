@@ -89,12 +89,18 @@ export interface ContactDetails {
   readonly phone: string
   /** Optional location line. Leave empty to hide the row. */
   readonly location: string
+  /**
+   * Who reads the enquiries. Used to greet the visitor by name in the
+   * WhatsApp handoff, so it is the person, not the brand.
+   */
+  readonly recipient: string
 }
 
 export const contact: ContactDetails = {
   email: 'Dewjoshi2502@gmail.com',
   phone: '+91 94609 83122',
   location: '',
+  recipient: 'Devansh',
 }
 
 export const socials: readonly SocialLink[] = [
